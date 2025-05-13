@@ -1,0 +1,48 @@
+#include <Servo.h>
+
+#define RAIN_SENSOR_PIN 2       // Digital pin for rain sensor
+#define MOISTURE_SENSOR_PIN A0  // Analog pin for soil moisture sensor
+#define RELAY_PIN 3             // Digital pin for relay (Pump control)
+#define SERVO_PIN 9             // PWM pin for servo motor
+#define MOISTURE_THRESHOLD 400  // Adjust based on soil moisture level (0-1023)
+
+Servo servoMotor;  // Create a Servo object
+
+void setup() {
+    pinMode(RAIN_SENSOR_PIN, INPUT);
+    pinMode(MOISTURE_SENSOR_PIN, INPUT);
+    pinMode(RELAY_PIN, OUTPUT);
+    
+    servoMotor.attach(SERVO_PIN);
+    servoMotor.write(0); // Ensure the gate starts in the closed position
+    digitalWrite(RELAY_PIN, HIGH); // Ensure the pump is OFF initially
+    
+    Serial.begin(9600);
+}
+
+void loop() {
+    int rainDetected = digitalRead(RAIN_SENSOR_PIN); // Read rain sensor
+    int moistureLevel = analogRead(MOISTURE_SENSOR_PIN); // Read soil moisture
+
+    Serial.print("Soil Moisture Level: ");
+    Serial.println(moistureLevel);
+
+    if (rainDetected == LOW) { // If rain is detected
+        Serial.println("🌧️ Rain detected! Opening gate and stopping pump...");
+        servoMotor.write(90); // Open the gate
+        digitalWrite(RELAY_PIN, HIGH); // Turn OFF the pump
+    } else {
+        Serial.println("☀️ No rain. Closing gate...");
+        servoMotor.write(0); // Close the gate
+        
+        if (moistureLevel < MOISTURE_THRESHOLD) { // If soil is dry
+            Serial.println("🌱 Soil is dry. Pump ON.");
+            digitalWrite(RELAY_PIN, LOW); // Start the pump
+        } else {
+            Serial.println("💦 Soil has enough moisture. Pump OFF.");
+            digitalWrite(RELAY_PIN, HIGH); // Stop the pump
+        }
+    }
+
+    delay(1000); // Small delay to prevent frequent switching
+}
